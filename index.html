@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🕵️ Detective BIDMAS</title>
+<style>
+    body {
+        background-color: black;
+        color: white;
+        font-family: Arial, sans-serif;
+        text-align: center;
+        padding: 20px;
+    }
+    h1 {
+        color: gold;
+    }
+    .question {
+        font-size: 1.3em;
+        color: lightblue;
+        margin: 20px 0;
+    }
+    button {
+        background-color: #333;
+        color: white;
+        padding: 10px 20px;
+        margin: 8px;
+        border: none;
+        border-radius: 6px;
+        font-size: 1.1em;
+        cursor: pointer;
+    }
+    button:hover {
+        background-color: gold;
+        color: black;
+    }
+    .feedback {
+        margin: 15px 0;
+        font-size: 1.2em;
+    }
+    .score {
+        font-size: 1.2em;
+        margin-top: 15px;
+        color: gold;
+    }
+    .leaderboard {
+        margin-top: 20px;
+        background: #111;
+        padding: 10px;
+        border-radius: 8px;
+    }
+    .leaderboard h2 {
+        color: gold;
+    }
+</style>
+</head>
+<body>
+
+<h1>🔎 Detective BIDMAS Challenge</h1>
+<p>Crack the math codes using BIDMAS rules!</p>
+
+<div class="question" id="question">Loading...</div>
+<div id="options"></div>
+<div class="feedback" id="feedback"></div>
+<div class="score" id="score">🗂️ Cases Solved: 0 | Rank: Rookie Detective</div>
+
+<div class="leaderboard">
+    <h2>🏆 Leaderboard</h2>
+    <ol id="leaderboard-list"></ol>
+</div>
+
+<script>
+let score = 0;
+let level = 1;
+let correctAnswer = 0;
+let options = [];
+
+const leaderboardKey = "detectiveBidmasLeaderboard";
+
+// Load leaderboard from browser storage
+function loadLeaderboard() {
+    let data = localStorage.getItem(leaderboardKey);
+    return data ? JSON.parse(data) : [];
+}
+
+// Save leaderboard
+function saveLeaderboard(entries) {
+    localStorage.setItem(leaderboardKey, JSON.stringify(entries));
+}
+
+// Update leaderboard on screen
+function updateLeaderboard() {
+    let leaderboard = loadLeaderboard();
+    leaderboard.sort((a, b) => b.score - a.score);
+    let list = document.getElementById("leaderboard-list");
+    list.innerHTML = "";
+    leaderboard.slice(0, 5).forEach(entry => {
+        let li = document.createElement("li");
+        li.textContent = `${entry.name} - ${entry.score} cases`;
+        list.appendChild(li);
+    });
+}
+
+// Ask for player name once
+let playerName = prompt("Detective, what is your name?") || "Anonymous";
+
+// Generate math expression
+function generateQuestion(level) {
+    let n = () => Math.floor(Math.random() * 9) + 1;
+    let ops;
+    if (level === 1) { // Rookie
+        ops = ["+", "-"];
+        return `${n()} ${ops[Math.floor(Math.random()*2)]} ${n()} ${ops[Math.floor(Math.random()*2)]} ${n()}`;
+    } else if (level === 2) { // Junior
+        ops = ["+", "-", "*", "/"];
+        return `${n()} ${ops[Math.floor(Math.random()*4)]} ${n()} ${ops[Math.floor(Math.random()*4)]} ${n()}`;
+    } else if (level === 3) { // Senior
+        ops = ["+", "-", "*", "/"];
+        return `(${n()} ${ops[Math.floor(Math.random()*4)]} ${n()}) ${ops[Math.floor(Math.random()*4)]} ${n()} ${ops[Math.floor(Math.random()*4)]} ${n()}`;
+    } else { // Master
+        ops = ["+", "-", "*", "/"];
+        if (Math.random() < 0.5) {
+            return `(${n()} ${ops[Math.floor(Math.random()*4)]} ${n()}) ${ops[Math.floor(Math.random()*4)]} ${n()} ${ops[Math.floor(Math.random()*4)]} ${n()}`;
+        } else {
+            return `${n()} ${ops[Math.floor(Math.random()*4)]} ${n()} ${ops[Math.floor(Math.random()*4)]} ${n()} ${ops[Math.floor(Math.random()*4)]} ${n()}`;
+        }
+    }
+}
+
+// New question
+function newQuestion() {
+    let expr = generateQuestion(level);
+    document.getElementById("question").textContent = "🕵️ Case File: Solve " + expr;
+    correctAnswer = Math.round(eval(expr) * 100) / 100;
+
+    // Generate options
+    options = [correctAnswer];
+    while (options.length < 4) {
+        let wrong = Math.round((correctAnswer + (Math.random()*10 - 5)) * 100) / 100;
+        if (!options.includes(wrong)) options.push(wrong);
+    }
+    options.sort(() => Math.random() - 0.5);
+
+    // Render buttons
+    let optionsDiv = document.getElementById("options");
+    optionsDiv.innerHTML = "";
+    options.forEach((opt, i) => {
+        let btn = document.createElement("button");
+        btn.textContent = opt;
+        btn.onclick = () => checkAnswer(opt);
+        optionsDiv.appendChild(btn);
+    });
+}
+
+// Check answer
+function checkAnswer(selected) {
+    let feedback = document.getElementById("feedback");
+    if (Math.abs(selected - correctAnswer) < 0.01) {
+        feedback.textContent = "🔎 Clue found! Case solved.";
+        feedback.style.color = "lightgreen";
+        score++;
+    } else {
+        feedback.textContent = "❌ Wrong lead... The real answer was " + correctAnswer;
+        feedback.style.color = "red";
+    }
+
+    // Rank system
+    let rank;
+    if (score < 5) { level = 1; rank = "Rookie Detective"; }
+    else if (score < 10) { level = 2; rank = "Junior Detective"; }
+    else if (score < 15) { level = 3; rank = "Senior Detective"; }
+    else { level = 4; rank = "Master Detective"; }
+
+    document.getElementById("score").textContent = `🗂️ Cases Solved: ${score} | Rank: ${rank}`;
+
+    // Save to leaderboard
+    let leaderboard = loadLeaderboard();
+    let existing = leaderboard.find(entry => entry.name === playerName);
+    if (existing) {
+        existing.score = Math.max(existing.score, score);
+    } else {
+        leaderboard.push({ name: playerName, score: score });
+    }
+    saveLeaderboard(leaderboard);
+    updateLeaderboard();
+
+    // Disable buttons until next question
+    Array.from(document.getElementById("options").children).forEach(btn => btn.disabled = true);
+
+    // Next question after 2s
+    setTimeout(newQuestion, 2000);
+}
+
+// Start game
+updateLeaderboard();
+newQuestion();
+</script>
+
+</body>
+</html>
