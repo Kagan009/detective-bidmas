@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Dimension Reader</title>
+    <style>
+        body { font-family: sans-serif; margin: 2em; }
+        #results { margin-top: 1em; }
+    </style>
+</head>
+<body>
+    <h1>Upload a PDF to extract dimensions</h1>
+    <form id="upload-form">
+        <input type="file" id="pdf-file" name="file" accept=".pdf">
+        <button type="submit">Upload</button>
+    </form>
+    <div id="results"></div>
+
+    <script>
+        document.getElementById('upload-form').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const fileInput = document.getElementById('pdf-file');
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = 'Processing...';
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    resultsDiv.innerHTML = `<p style="color: red;">Error: ${data.error}</p>`;
+                } else if (data.dimensions && data.dimensions.length > 0) {
+                    let html = '<h2>Extracted Dimensions:</h2><ul>';
+                    data.dimensions.forEach(dim => {
+                        html += `<li>${dim}</li>`;
+                    });
+                    html += '</ul>';
+                    resultsDiv.innerHTML = html;
+                } else {
+                    resultsDiv.innerHTML = '<p>No dimensions found.</p>';
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `<p style="color: red;">An error occurred: ${error.message}</p>`;
+            }
+        });
+    </script>
+</body>
+</html>
